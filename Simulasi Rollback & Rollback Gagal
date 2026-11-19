@@ -1,0 +1,47 @@
+import app_v1
+
+VERSION_V2 = "v2.0.0"
+
+
+def hitung_harga_akhir_v2(harga: float, diskon_persen: float) -> float:
+    # BUG DI VERSI 2: salah rumus (menambah harga, bukan mengurangi diskon)
+    return round(harga + (harga * (diskon_persen / 100)), 2)
+
+
+def jalankan_v2(harga: float = 100000, diskon: float = 10) -> str:
+    hasil = hitung_harga_akhir_v2(harga, diskon)
+    # Post-deploy validation mendeteksi hasil melampaui harga awal
+    if hasil < 0 or hasil > harga:
+        raise RuntimeError(
+            f"[{VERSION_V2}] GAGAL SAAT RUNNING! Harga jadi {hasil} (> {harga})."
+        )
+    return f"[{VERSION_V2}] Harga awal: {harga} | Diskon: {diskon}% | Bayar: {hasil}"
+
+
+def simulasi_rollback(data_kompatibel_v1: bool = True) -> None:
+    print("\n--- MEMULAI PROSES ROLLBACK KE v1.0.0 ---")
+    if not data_kompatibel_v1:
+        raise RuntimeError(
+            "ROLLBACK GAGAL! Data/konfigurasi di v2.0.0 tidak kompatibel dengan v1.0.0."
+        )
+    hasil_rollback = app_v1.jalankan_aplikasi(100000, 10)
+    print("ROLLBACK BERHASIL ->", hasil_rollback)
+
+
+if __name__ == "__main__":
+    print("=== 1. MENJALANKAN VERSI 2 ===")
+    try:
+        print(jalankan_v2(100000, 10))
+    except RuntimeError as err:
+        print("Terdeteksi masalah:", err)
+
+        # Skenario A: Rollback ke v1.0.0 berhasil
+        simulasi_rollback(data_kompatibel_v1=True)
+
+        # Skenario B: Rollback ke v1.0.0 ternyata GAGAL
+        print("\n=== 2. SIMULASI ROLLBACK YANG GAGAL ===")
+        try:
+            simulasi_rollback(data_kompatibel_v1=False)
+        except RuntimeError as rollback_err:
+            print("Terjadi insiden lanjutan:", rollback_err)
+            print("Tindakan: Perlu hotfix / perbaikan manual (tidak cukup hanya rollback).")
